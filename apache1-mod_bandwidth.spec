@@ -21,6 +21,7 @@ Requires(post,preun):	%{apxs}
 Requires(post,preun):	grep
 Requires(preun):	fileutils
 Requires:	apache(EAPI)
+Requires:	crondaemon
 Requires:	procps
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
