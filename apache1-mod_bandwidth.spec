@@ -4,7 +4,7 @@ Summary:	Apache module: bandwidth limits
 Summary(pl):	Modu³ do Apache: limity pasma
 Name:		apache1-mod_%{mod_name}
 Version:	2.0.5
-Release:	1
+Release:	1.3
 License:	Apache
 Group:		Networking/Daemons
 Source0:	ftp://ftp.cohprog.com/pub/apache/module/1.3.0/mod_bandwidth.c
@@ -16,19 +16,16 @@ Source2:	%{name}.conf
 # http://www.cohprog.com/v3/bandwidth/doc-en.html
 Source4:	%{name}-doc.html
 URL:		http://www.cohprog.com/v3/bandwidth/intro-en.html
-BuildRequires:	apache1-devel
+BuildRequires:	apache1-devel >= 1.3.33-2
 BuildRequires:	%{apxs}
-Requires(post,preun):	%{apxs}
-Requires(post,preun):	grep
-Requires(preun):	fileutils
-Requires:	apache1
+Requires:	apache1 >= 1.3.33-2
 Requires:	crondaemon
 Requires:	procps
 Obsoletes:	apache-mod_%{mod_name} <= %{version}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		_pkglibdir	%(%{apxs} -q LIBEXECDIR)
-%define		_sysconfdir	%(%{apxs} -q SYSCONFDIR)
+%define		_pkglibdir	%(%{apxs} -q LIBEXECDIR 2>/dev/null)
+%define		_sysconfdir	%(%{apxs} -q SYSCONFDIR 2>/dev/null)
 
 %description
 "Mod_bandwidth" is a module for the Apache webserver that enable the
@@ -48,13 +45,13 @@ cp %{SOURCE0} .
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT{%{_pkglibdir},%{_sysconfdir}} \
+install -d $RPM_BUILD_ROOT{%{_pkglibdir},%{_sysconfdir}/conf.d} \
 	$RPM_BUILD_ROOT%{_var}/run/%{name}/{link,master} \
 	$RPM_BUILD_ROOT{/etc/cron.d,%{_sbindir}}
 
 install mod_%{mod_name}.so $RPM_BUILD_ROOT%{_pkglibdir}
 install %{SOURCE1} $RPM_BUILD_ROOT%{_sbindir}
-install %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/mod_%{mod_name}.conf
+install %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/conf.d/90_mod_%{mod_name}.conf
 install %{SOURCE4} .
 
 echo '* * * * * http %{_sbindir}/%{name}-cleanlink.pl' > \
@@ -64,21 +61,12 @@ echo '* * * * * http %{_sbindir}/%{name}-cleanlink.pl' > \
 rm -rf $RPM_BUILD_ROOT
 
 %post
-%{apxs} -e -a -n %{mod_name} %{_pkglibdir}/mod_%{mod_name}.so 1>&2
-if [ -f /etc/apache/apache.conf ] && ! grep -q "^Include.*mod_%{mod_name}.conf" /etc/apache/apache.conf; then
-	echo "Include /etc/apache/mod_%{mod_name}.conf" >> /etc/apache/apache.conf
-fi
 if [ -f /var/lock/subsys/apache ]; then
 	/etc/rc.d/init.d/apache restart 1>&2
 fi
 
 %preun
 if [ "$1" = "0" ]; then
-	%{apxs} -e -A -n %{mod_name} %{_pkglibdir}/mod_%{mod_name}.so 1>&2
-	umask 027
-	grep -v "^Include.*mod_%{mod_name}.conf" /etc/apache/apache.conf > \
-		/etc/apache/apache.conf.tmp
-	mv -f /etc/apache/apache.conf.tmp /etc/apache/apache.conf
 	if [ -f /var/lock/subsys/apache ]; then
 		/etc/rc.d/init.d/apache restart 1>&2
 	fi
@@ -87,7 +75,7 @@ fi
 %files
 %defattr(644,root,root,755)
 %doc *html
-%attr(640,root,root) %config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/mod_*.conf
+%attr(640,root,root) %config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/conf.d/*_mod_%{mod_name}.conf
 %config(noreplace) %verify(not size mtime md5) %attr(640,root,root) /etc/cron.d/%{name}
 %attr(755,root,root) %{_sbindir}/*
 %attr(755,root,root) %{_pkglibdir}/*
