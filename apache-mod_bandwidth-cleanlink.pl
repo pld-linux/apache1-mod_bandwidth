@@ -14,17 +14,6 @@ $TIME=120;
 $PS="ps -auxw";
 $LINKDIR="/var/run/apache-mod_bandwidth/link";
 
-unless(fork) {
-   unless (fork) {
-      sleep 1 until getppid == 1;
-      while (1) {
-         &do_clean;
-         sleep($TIME);
-      }  
-      exit 0;
-   }
-    exit 0;
-} wait;
 
 sub do_clean {
    local(%ppid);
@@ -49,3 +38,6 @@ sub do_clean {
       }
    }
 }
+
+do_clean();
+
