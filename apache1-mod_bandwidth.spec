@@ -28,7 +28,7 @@ Obsoletes:	apache-mod_%{mod_name} <= %{version}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		_pkglibdir	%(%{apxs} -q LIBEXECDIR)
-%define         _sysconfdir     /etc/apache
+%define		_sysconfdir	%(%{apxs} -q SYSCONFDIR)
 
 %description
 "Mod_bandwidth" is a module for the Apache webserver that enable the
