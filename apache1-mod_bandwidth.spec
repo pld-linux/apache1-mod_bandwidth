@@ -51,7 +51,7 @@ install -d $RPM_BUILD_ROOT{%{_pkglibdir},%{_sysconfdir}} \
 
 install mod_%{mod_name}.so $RPM_BUILD_ROOT%{_pkglibdir}
 install %{SOURCE1} $RPM_BUILD_ROOT%{_sbindir}
-install %{SOURCE2} $RPM_BUILD_ROOT/%{_sysconfdir}/mod_%{mod_name}.conf
+install %{SOURCE2} $RPM_BUILD_ROOT%{_sysconfdir}/mod_%{mod_name}.conf
 install %{SOURCE4} .
 
 echo '* * * * * http %{_sbindir}/%{name}-cleanlink.pl' > \
