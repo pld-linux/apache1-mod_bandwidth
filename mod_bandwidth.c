@@ -387,8 +387,8 @@
  * #define LINK_DIR    "/tmp/apachebw/link"
  */
 
-#define MASTER_DIR  "/var/run/apache-mod_bandwidth/master"
-#define LINK_DIR    "/var/run/apache-mod_bandwidth/link"
+#define MASTER_DIR  "master"
+#define LINK_DIR    "link"
 
 /* Define BWDEBUG for debuging purpose only ! */
 /* #define BWDEBUG */
