@@ -8,6 +8,7 @@ Release:	1
 License:	Apache
 Group:		Networking/Daemons
 Source0:	ftp://ftp.cohprog.com/pub/apache/module/1.3.0/mod_bandwidth.c
+# Source0-md5:	00f0905d777f79485beb428b53191ecf
 # ftp://ftp.cohprog.com/pub/apache/module/cleanlink.pl
 # modified to work from cron NOT as daemon!
 Source1:	%{name}-cleanlink.pl
