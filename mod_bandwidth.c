@@ -387,8 +387,8 @@
  * #define LINK_DIR    "/tmp/apachebw/link"
  */
 
-#define MASTER_DIR  "master"
-#define LINK_DIR    "link"
+#define MASTER_DIR  "/var/run/apache-mod_bandwidth/master"
+#define LINK_DIR    "/var/run/apache-mod_bandwidth/link"
 
 /* Define BWDEBUG for debuging purpose only ! */
 /* #define BWDEBUG */
@@ -835,7 +835,7 @@ static int handle_bw(request_rec *r) {
    * directory.
    */
 
-  if (stat(directory, &fdata) < -1) {
+  if (stat(directory, &fdata) < 0) {
      /* Dunno if this may happen... but well... */
      return DECLINED;
   }
