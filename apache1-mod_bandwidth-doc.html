@@ -246,14 +246,14 @@ function open() {return true;}
 <br>
 <br>
 <br>
-<table border=0 cellspacing=0 cellpadding=0 width="480">
+<table border=0 cellspacing=0 cellpadding=0 width="550">
 <tr>
   <td class=normal colspan=3><img src="/v3/graph/blue1.gif" width=100 height=2></td>
 </tr><tr>
   <td valign=top class=normal rowspan=2><img src="/v3/graph/blue1.gif" width=2 height=50></td>
   <td valign=top width="100%" bgcolor="lightgrey" class=normal>
   <table border=0 width="100%" cellpadding=20 cellspacing=0>
-  <tr><td width="476">
+  <tr><td width="550">
   <div class=ctitle>Mod_bandwidth documentation</div><P>
   <div class=ctext>
  
@@ -268,6 +268,18 @@ are transmited ! For that reason, it is important to follow those steps :<P>
      <LI>Run the ./configure script with the following directives : --add-module=mod_bandwidth.c \<br>--permute-module=BEGIN:bandwidth<br>
      <LI>Compile and install Apache.<P>
 </UL>
+     <b class=ctextbold>APXS installation</b><br>
+<UL>
+     <LI>Compile the module with :<br>
+         /path_to_apache/bin/apxs -c /path/mod_bandwidth.c -o /path_to_apache/libexec/mod_bandwidth.so<br>
+     <LI>Add the following lines to your httpd.conf file :<br>
+         LoadModule bandwidth_module libexec/mod_bandwidth.so<br>
+         AddModule mod_bandwidth.c<P>
+         Those directives should be placed at the begining of the list
+         so that the module will be given the lowest priority and be
+         executed after others modules.<P>
+</UL>
+
      <b class=ctextbold>Manual installation</b><br>
 <UL>
      <LI>Copy the file mod_bandwidth.c to the "src/modules/extra" directory of your Apache sources.<br>
@@ -422,6 +434,16 @@ are transmited ! For that reason, it is important to follow those steps :<P>
        limited to 3072Bytes/sec and a file of 1024Kbytes or more
        will be limited to 2048Bytes/sec.
 <P> 
+<LI><b class=ctextbold>MaxConnection</b><br>
+    Syntax  : MaxConnection &lt;connections&gt;<BR>
+    Default : 0 (illimited)<BR>
+    Context : per directory, .htaccess<P>
+ 
+    Restrict the number of maximum simultanous connections. If the
+    limit is reached, new connections will be rejected.
+
+    A value of 0 mean that there isn't any limits.
+<P>
 <LI><b class=ctextbold>MinBandWidth</b><br>
     Syntax  : MinBandWidth &lt;domain|ip|all&gt; &lt;rate&gt;<BR>
     Default : all 256<BR>
