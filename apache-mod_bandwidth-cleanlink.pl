@@ -11,7 +11,7 @@
 
 $TIME=120;
 
-$PS="ps -auxw";
+$PS="ps auxw";
 $LINKDIR="/var/run/apache-mod_bandwidth/link";
 
 
