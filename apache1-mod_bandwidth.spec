@@ -36,7 +36,7 @@ setting of server-wide or per connection bandwidth limits, based on
 the directory, size of files and remote IP/domain.
 
 %description -l pl
-Modu³ pozawlaj±cy na ograniczanie pasma poprzez serwer Apache bazuj±c
+Modu³ pozwalaj±cy na ograniczanie pasma poprzez serwer Apache bazuj±c
 na katalogu, wielko¶ci plików oraz zdalnym IP/domenie.
 
 %prep
