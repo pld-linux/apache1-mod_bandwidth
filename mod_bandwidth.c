@@ -54,8 +54,8 @@
  * Title       : Bandwidth management
  * File        : mod_bandwidth.c
  * Author      : Yann Stettler (stettler@cohprog.com)
- * Date        : 17 July 1999
- * Version     : 2.0.3 for Apache 1.3+
+ * Date        : 12 January 2003
+ * Version     : 2.0.5 for Apache 1.3+
  *
  * Description :
  *   Provide bandwidth usage limitation either on the whole server or
@@ -79,6 +79,8 @@
  *               12/15/00 - Bug fix when using mmap
  *               08/29/01 - Add a directive to change the data directory
  *                          (Thanks to Awesome Walrus <walrus@amur.ru> )
+ *               01/12/03 - Add MaxConnection directive to limit the number
+ *                          of simultaneous connections.
  *
  ***************************************************************************
  * Copyright (c)1997 Yann Stettler and CohProg SaRL. All rights reserved.
@@ -322,6 +324,16 @@
  *        basis. (Ie: each virtual server will have that limit,
  *        _independantly_ of the other servers)
  *
+ * -  MaxConnection
+ *    Syntax  : MaxConnection <connections>
+ *    Default : 0 (illimited)
+ *    Context : per directory, .htaccess 
+ *
+ *    Restrict the number of maximum simultanous connections. If the
+ *    limit is reached, new connections will be rejected.
+ "
+ *    A value of 0 mean that there isn't any limits.
+ *
  * Implementation notes :
  * ----------------------
  * 
@@ -426,6 +438,7 @@ typedef struct {
   array_header *limits;
   array_header *minlimits;
   array_header *sizelimits;
+  int maxconnection;
   char  *directory;
 } bandwidth_config;
 
@@ -453,6 +466,7 @@ static void *create_bw_config(pool *p, char *path) {
   new->minlimits=ap_make_array(p,20,sizeof(bw_entry));
   new->sizelimits=ap_make_array(p,10,sizeof(bw_sizel));
   new->directory=ap_pstrdup(p, path);
+  new->maxconnection=0;
   return (void *)new; 
 }
 
@@ -498,12 +512,29 @@ static const char *setpulse(cmd_parms *cmd, bandwidth_config *dconf, char *pulse
      return "Invalid argument";
 
    if (temp<0)
-     return "BandWidth must be a number of bytes/s";
+     return "Pulse must be a number of microseconds/s";
 
    BWPulse=temp;
 
    return NULL;
 }
+
+static const char *MaxConnection(cmd_parms *cmd, void *s, char *maxc) { 
+   bandwidth_config *conf=(bandwidth_config *)s;
+   int temp;
+ 
+   if (maxc && *maxc && isdigit(*maxc))
+     temp = atoi(maxc); 
+   else 
+     return "Invalid argument";
+ 
+   if (temp<0)
+     return "Connections must be a number of simultaneous connections allowed/s";
+ 
+   conf->maxconnection=temp;
+ 
+   return NULL;
+} 
 
 static const char *bandwidth(cmd_parms *cmd, void *s, char *from, char *bw) {
   bandwidth_config *conf=(bandwidth_config *)s;
@@ -576,6 +607,8 @@ static command_rec bw_cmds[] = {
     "a domain (or ip, or all for all) and a minimal bandwidth limit (in bytes/s)" },
 { "LargeFileLimit", largefilelimit, NULL, RSRC_CONF | OR_LIMIT, TAKE2,
     "a filesize (in Kbytes) and a bandwidth limit (in bytes/s)" },
+{ "MaxConnection", MaxConnection, NULL, RSRC_CONF | OR_LIMIT, TAKE1,
+    "A number of allowed simultaneous connections" },
 { "BandWidthModule",   bandwidthmodule,  NULL, OR_FILEINFO, FLAG, 
       "On or Off to enable or disable (default) the whole bandwidth module" },
 { "BandWidthPulse", setpulse, NULL, OR_FILEINFO, TAKE1,
@@ -742,7 +775,7 @@ static int handle_bw(request_rec *r) {
   bandwidth_server_config *sconf =
      (bandwidth_server_config *)ap_get_module_config(r->server->module_config, &bandwidth_module);
   long int bw_rate=0, bw_min=0, bw_f_rate=0, cur_rate;
-  int bwlast=0, fd;
+  int nolimit=0, bwlast=0, fd;
   long int tosend, bytessent, filelength;
   struct stat fdata;
   struct timeval opt_time, last_time, now, timespent, timeout;
@@ -773,7 +806,15 @@ static int handle_bw(request_rec *r) {
   bw_min=get_bw_rate(r, conf->minlimits);
   bw_f_rate=get_bw_filesize(r, conf->sizelimits , r->finfo.st_size);
 
-  if ((bw_rate==0 && bw_f_rate==0) || bw_f_rate < 0 || !directory) return DECLINED;
+  if (!directory) return DECLINED;
+
+  if ((bw_rate==0 && bw_f_rate==0) || bw_f_rate < 0) {
+     if (!conf->maxconnection) {
+         return DECLINED;
+     } else {
+         nolimit=1;
+     }
+  }
 
   if (r->finfo.st_mode == 0 || (r->path_info && *r->path_info)) {
       ap_log_reason("File does not exist", r->filename, r);
@@ -810,6 +851,14 @@ static int handle_bw(request_rec *r) {
   }
   close(fd);
 
+  /*
+   * Check if the maximum number of connections allowed is reached
+   */
+  if (conf->maxconnection && (conf->maxconnection <= current_connection(masterfile))) {
+/*     return HTTP_SERVICE_UNAVAILABLE; */
+       return FORBIDDEN;
+  }
+
   sprintf(filelink,"%s/%s/%d", bandwidth_data_dir, LINK_DIR, getpid());
   if (link(masterfile, filelink) < 0) {
      ap_log_printf(r->server, "mod_bandwidth : Can't create hard link %s", filelink);
@@ -821,6 +870,7 @@ static int handle_bw(request_rec *r) {
   if (f == NULL) {
      ap_log_error(APLOG_MARK, APLOG_ERR, r->server,
                 "file permissions deny server access: %s", r->filename);
+     unlink(filelink); 
      return FORBIDDEN;
   }
 
@@ -895,9 +945,13 @@ static int handle_bw(request_rec *r) {
                  * this case, I feel that I have the moral right to do so :)
                  */
 
-                opt_time.tv_sec=(long int) PACKET / cur_rate;
-                opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
-
+                if (nolimit) {
+                   opt_time.tv_sec=0;
+                   opt_time.tv_usec=0;
+                } else {
+                   opt_time.tv_sec=(long int) PACKET / cur_rate;
+                   opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                }
                 tosend=PACKET;
                 if (tosend+bytessent >= filelength) {
                    tosend=filelength-bytessent;
@@ -907,7 +961,10 @@ static int handle_bw(request_rec *r) {
                 opt_time.tv_sec=(long int)BWPulse/1000000;
                 opt_time.tv_usec=BWPulse-opt_time.tv_sec*1000000;
 
-                tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
+                if (nolimit)
+                   tosend=filelength;
+                else
+                   tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
                 if (tosend+bytessent >= filelength) {
                    tosend=filelength-bytessent;
                    bwlast=1;
@@ -954,8 +1011,13 @@ static int handle_bw(request_rec *r) {
                     cur_rate=bw_min;
 
                  if (BWPulse <= 0) {
-                    opt_time.tv_sec=(long int) PACKET / cur_rate;
-                    opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                    if (nolimit) {
+                      opt_time.tv_sec=0;
+                      opt_time.tv_usec=0;
+                    } else {
+                      opt_time.tv_sec=(long int) PACKET / cur_rate;
+                      opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                    }
 
                     tosend=PACKET;
                     if (tosend+bytessent >= filelength) {
@@ -965,8 +1027,11 @@ static int handle_bw(request_rec *r) {
                  } else {
                     opt_time.tv_sec=(long int)BWPulse/1000000;
                     opt_time.tv_usec=BWPulse-opt_time.tv_sec*1000000;
-  
-                    tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
+ 
+                    if (nolimit)
+                       tosend=filelength;
+                    else 
+                       tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
                     if (tosend+bytessent >= filelength) {
                        tosend=filelength-bytessent;
                        bwlast=1;
@@ -1036,8 +1101,13 @@ static int handle_bw(request_rec *r) {
                     * this case, I feel that I have the moral right to do so :)
                     */
 
-                   opt_time.tv_sec=(long int) PACKET / cur_rate;
-                   opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                   if (nolimit) {
+                      opt_time.tv_sec=0;
+                      opt_time.tv_usec=0;
+                   } else {
+                      opt_time.tv_sec=(long int) PACKET / cur_rate;
+                      opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                   }
 
                    tosend=PACKET;
                    if (tosend+bytessent >= filelength) {
@@ -1048,7 +1118,10 @@ static int handle_bw(request_rec *r) {
                    opt_time.tv_sec=(long int)BWPulse/1000000;
                    opt_time.tv_usec=BWPulse-opt_time.tv_sec*1000000;
 
-                   tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
+                   if (nolimit)
+                      tosend=filelength;
+                   else
+                      tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
                    if (tosend+bytessent >= filelength) {
                       tosend=filelength-bytessent;
                       bwlast=1;
@@ -1093,8 +1166,13 @@ static int handle_bw(request_rec *r) {
                       cur_rate=bw_min;
 
                    if (BWPulse <= 0) { 
-                      opt_time.tv_sec=(long int) PACKET / cur_rate;
-                      opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                      if (nolimit) {
+                        opt_time.tv_sec=0;
+                        opt_time.tv_usec=0;
+                      } else {
+                         opt_time.tv_sec=(long int) PACKET / cur_rate;
+                         opt_time.tv_usec=(long int)PACKET*1000000/cur_rate-opt_time.tv_sec*1000000;
+                      }
    
                       tosend=PACKET;
                       if (tosend+bytessent >= filelength) {
@@ -1105,7 +1183,10 @@ static int handle_bw(request_rec *r) {
                       opt_time.tv_sec=(long int)BWPulse/1000000;
                       opt_time.tv_usec=BWPulse-opt_time.tv_sec*1000000;
 
-                      tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
+                      if (nolimit)
+                         tosend=filelength;
+                      else
+                         tosend=(long int)((double)BWPulse/(double)1000000*(double)cur_rate);
                       if (tosend+bytessent >= filelength) {
                          tosend=filelength-bytessent;
                          bwlast=1;
