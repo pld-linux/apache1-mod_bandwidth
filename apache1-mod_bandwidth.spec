@@ -16,8 +16,8 @@ Source2:	%{name}.conf
 # http://www.cohprog.com/v3/bandwidth/doc-en.html
 Source4:	%{name}-doc.html
 URL:		http://www.cohprog.com/v3/bandwidth/intro-en.html
-BuildRequires:	apache1-devel >= 1.3.33-2
 BuildRequires:	%{apxs}
+BuildRequires:	apache1-devel >= 1.3.33-2
 Requires:	apache1 >= 1.3.33-2
 Requires:	crondaemon
 Requires:	procps
@@ -75,8 +75,8 @@ fi
 %files
 %defattr(644,root,root,755)
 %doc *html
-%attr(640,root,root) %config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/conf.d/*_mod_%{mod_name}.conf
-%config(noreplace) %verify(not size mtime md5) %attr(640,root,root) /etc/cron.d/%{name}
+%attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/conf.d/*_mod_%{mod_name}.conf
+%config(noreplace) %verify(not md5 mtime size) %attr(640,root,root) /etc/cron.d/%{name}
 %attr(755,root,root) %{_sbindir}/*
 %attr(755,root,root) %{_pkglibdir}/*
 %attr(750,http,root) %dir %{_var}/run/%{name}
