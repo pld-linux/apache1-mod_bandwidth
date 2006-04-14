@@ -22,7 +22,7 @@ BuildRequires:	rpmbuild(macros) >= 1.268
 Requires:	apache1 >= 1.3.33-2
 Requires:	crondaemon
 Requires:	procps
-Obsoletes:	apache-mod_bandwidth <= %{version}
+Obsoletes:	apache-mod_bandwidth <= 2.0.5
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		_pkglibdir	%(%{apxs} -q LIBEXECDIR 2>/dev/null)
