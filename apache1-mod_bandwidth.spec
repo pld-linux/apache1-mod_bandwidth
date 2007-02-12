@@ -1,7 +1,7 @@
 %define		mod_name	bandwidth
 %define 	apxs		/usr/sbin/apxs1
 Summary:	Apache module: bandwidth limits
-Summary(pl):	Modu≥ do Apache: limity pasma
+Summary(pl.UTF-8):   Modu≈Ç do Apache: limity pasma
 Name:		apache1-mod_%{mod_name}
 Version:	2.0.5
 Release:	1.4
@@ -33,9 +33,9 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 setting of server-wide or per connection bandwidth limits, based on
 the directory, size of files and remote IP/domain.
 
-%description -l pl
-Modu≥ pozwalaj±cy na ograniczanie pasma poprzez serwer Apache bazuj±c
-na katalogu, wielko∂ci plikÛw oraz zdalnym IP/domenie.
+%description -l pl.UTF-8
+Modu≈Ç pozwalajƒÖcy na ograniczanie pasma poprzez serwer Apache bazujƒÖc
+na katalogu, wielko≈õci plik√≥w oraz zdalnym IP/domenie.
 
 %prep
 %setup -q -T -c
