@@ -16,7 +16,7 @@ Source2:	%{name}.conf
 # http://www.cohprog.com/v3/bandwidth/doc-en.html
 Source4:	%{name}-doc.html
 URL:		http://www.cohprog.com/v3/bandwidth/intro-en.html
-BuildRequires:	%{apxs}
+BuildRequires:	apache1-apxs
 BuildRequires:	apache1-devel >= 1.3.33-2
 BuildRequires:	rpmbuild(macros) >= 1.268
 Requires:	apache1 >= 1.3.33-2
