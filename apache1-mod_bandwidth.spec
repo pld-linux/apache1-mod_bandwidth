@@ -4,7 +4,7 @@ Summary:	Apache module: bandwidth limits
 Summary(pl.UTF-8):	Moduł do Apache: limity pasma
 Name:		apache1-mod_%{mod_name}
 Version:	2.0.5
-Release:	1.4
+Release:	1.5
 License:	Apache
 Group:		Networking/Daemons
 Source0:	ftp://ftp.cohprog.com/pub/apache/module/1.3.0/mod_bandwidth.c
@@ -18,7 +18,7 @@ Source4:	%{name}-doc.html
 URL:		http://www.cohprog.com/v3/bandwidth/intro-en.html
 BuildRequires:	apache1-devel >= 1.3.39
 BuildRequires:	rpmbuild(macros) >= 1.268
-Requires:	apache1 >= 1.3.33-2
+Requires:	apache1(EAPI)
 Requires:	crondaemon
 Requires:	procps
 Obsoletes:	apache-mod_bandwidth <= 2.0.5
